@@ -7,7 +7,6 @@ import requests
 
 
 class TianRunApi:
-
     class TimeoutException(Exception):
         pass
 
@@ -160,6 +159,13 @@ class TianRunApi:
         """
         :param unique_id: unique_id
         :return:
+            status	接听状态
+            start_time	座席接听时间
+            answer_time	客户接听时间
+            end_time	结束时间
+            bill_duration   计费时长
+            cost	费用（元）
+            sip_cause	呼叫结果
         """
         url = urllib.parse.urljoin(
             self.HOST, '/interfaceAction/cdrObInterface!listCdrObDetail.action')
@@ -175,15 +181,108 @@ class TianRunApi:
         result = json.loads(resp.text)
         res_no = result.get('result')
         if res_no != 'success':
-            raise self.ClientException(result.get('msg'))
-        data = result.get('msg')[0]
+            raise self.CdrException(result.get('msg'))
+
+        records = result.get('msg')
+        if records:
+            data = result.get('msg')[0]
+        else:
+            raise self.CdrException('记录不存在')
+
         return {
+            'status': data['status'],
             'start_time': data['startTime'],
+            'answer_time': data['answerTime'],
             'end_time': data['endTime'],
             'bill_duration': data['billDuration'],
             'cost': data['cost'],
             'combo_cost': data['comboCost'],
-            'record_file': data['recordFile'],
-            'status': data['status'],
             'sip_cause': data['sipCause'],
         }
+
+    def cdr_info(self, unique_id):
+        """
+        :param unique_id: unique_id
+        :return:
+
+            status: 外呼结果
+            start_time: 电话进入系统时间
+            bridge_time: 客户接听时间
+            bridge_duration: 通话时长
+            cost: 费用(元)
+            total_duration: 总时长
+            record_file: 录音文件的最终地址及录音文件名
+            user_field: 用户自定义参数
+            sip_cause: 呼叫结果
+        :refer: http://docs.ti-net.com.cn/index.php?m=content&c=index&a=lists&catid=34
+        """
+        url = urllib.parse.urljoin(
+            self.HOST, '/interfaceAction/cdrObInterface!listCdrOb.action')
+        seed = str(int(time.time() * 1000))
+        data = {
+            'enterpriseId': self.enterprise_id,
+            'userName': self.user_name,
+            'pwd': self._encrypt_passwd(self.password, seed),
+            'seed': seed,
+            'uniqueId': unique_id,
+        }
+        resp = self.session.post(url, data=data)
+        result = json.loads(resp.text)
+        res_no = result.get('result')
+        if res_no != 'success':
+            raise self.ClientException(result.get('msg'))
+        records = result.get('msg').get('data')
+        if records:
+            data = records[0]
+        else:
+            raise self.CdrException('记录不存在')
+        return {
+            'status': data['status'],
+            'start_time': data['startTime'],
+            # 'end_time': data['endTime'],
+            'bridge_time': data['bridgeTime'],
+            'bridge_duration': data['bridgeDuration'],
+            'cost': data['cost'],
+            'total_duration': data['totalDuration'],
+            'record_file': data['recordFile'],
+            'user_field': data['userField'],
+            'sip_cause': data['sipCause'],
+        }
+
+    def cdr_infos(self, start_time=None, end_time=None):
+        url = urllib.parse.urljoin(
+            self.HOST, '/interfaceAction/cdrObInterface!listCdrOb.action')
+        seed = str(int(time.time() * 1000))
+        data = {
+            'enterpriseId': self.enterprise_id,
+            'userName': self.user_name,
+            'pwd': self._encrypt_passwd(self.password, seed),
+            'seed': seed,
+            'limit': 1000,
+        }
+        if start_time:
+            data['startTime'] = start_time
+        if end_time:
+            data['endTime'] = end_time
+        resp = self.session.post(url, data=data)
+        result = json.loads(resp.text)
+        res_no = result.get('result')
+        if res_no != 'success':
+            raise self.ClientException(result.get('msg'))
+        records = result.get('msg').get('data')
+        results = []
+        for data in records:
+            tmp_record = {
+                'status': data['status'],
+                'start_time': data['startTime'],
+                # 'end_time': data['endTime'],
+                'bridge_time': data['bridgeTime'],
+                'bridge_duration': data['bridgeDuration'],
+                'cost': data['cost'],
+                'total_duration': data['totalDuration'],
+                'record_file': data['recordFile'],
+                'user_field': data['userField'],
+                'sip_cause': data['sipCause'],
+            }
+            results.append(tmp_record)
+        return results
