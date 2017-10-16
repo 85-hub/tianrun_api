@@ -51,6 +51,11 @@ class TianRunApi:
             self.code = code
             self.msg = msg
 
+    class CdrException(Exception):
+
+        def __init__(self, msg):
+            self.msg = msg
+
     HOST = 'http://api.clink.cn'
 
     def __init__(self, enterprise_id, user_name, password):
@@ -72,11 +77,13 @@ class TianRunApi:
         else:
             return hashlib.md5((result + seed).encode()).hexdigest()
 
-    def call(self, cno, passwd, customer_number):
+    def call(self, cno, passwd, customer_number, ext_info=None):
         """
         :param cno: 客席号
         :param passwd: 登录密码
         :param customer_number: 客户电话号码
+        :param ext_info: dict 或 字符 或数字，存在电话记录的用户自定义里面，
+                         用来对应我们的记录和天润的记录之间的关系
         :return:
         """
         url = urllib.parse.urljoin(self.HOST, '/interface/PreviewOutcall')
@@ -85,9 +92,13 @@ class TianRunApi:
             'cno': cno,
             'pwd': self._encrypt_passwd(passwd),
             'customerNumber': customer_number,
-            'userField': '123',
             'sync': '1',
         }
+        if ext_info:
+            if isinstance(ext_info, dict):
+                data['userField'] = json.dumps(ext_info)
+            elif isinstance(ext_info, (int, str)):
+                data['userField'] = str(ext_info)
         resp = self.session.post(url, data=data)
         result = json.loads(resp.text)
         res_no = result.get('res')
@@ -144,3 +155,35 @@ class TianRunApi:
             raise self.ClientException(res_no, result.get('msg'))
 
         return result
+
+    def cdr_detail(self, unique_id):
+        """
+        :param unique_id: unique_id
+        :return:
+        """
+        url = urllib.parse.urljoin(
+            self.HOST, '/interfaceAction/cdrObInterface!listCdrObDetail.action')
+        seed = str(int(time.time() * 1000))
+        data = {
+            'enterpriseId': self.enterprise_id,
+            'userName': self.user_name,
+            'pwd': self._encrypt_passwd(self.password, seed),
+            'seed': seed,
+            'id': unique_id,
+        }
+        resp = self.session.post(url, data=data)
+        result = json.loads(resp.text)
+        res_no = result.get('result')
+        if res_no != 'success':
+            raise self.ClientException(result.get('msg'))
+        data = result.get('msg')[0]
+        return {
+            'start_time': data['startTime'],
+            'end_time': data['endTime'],
+            'bill_duration': data['billDuration'],
+            'cost': data['cost'],
+            'combo_cost': data['comboCost'],
+            'record_file': data['recordFile'],
+            'status': data['status'],
+            'sip_cause': data['sipCause'],
+        }
