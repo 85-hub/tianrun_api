@@ -44,6 +44,11 @@ class TianRunApi:
         def msg(self):
             return self.code_mapping.get(self.code)
 
+    class HangupException(Exception):
+
+        def __init__(self, msg):
+            self.msg = msg
+
     class ClientException(Exception):
 
         def __init__(self, code, msg):
@@ -107,6 +112,32 @@ class TianRunApi:
         if res_no != '0':
             raise self.CallException(res_no)
 
+        return {
+            'unique_id': result.get('uniqueId')
+        }
+
+    def hangup(self, unique_id):
+        """
+        :param unique_id:
+        :return:
+            success without return value, error with Exception
+        """
+        url = urllib.parse.urljoin(self.HOST,
+                                   '/interface/entrance/OpenInterfaceEntrance')
+        seed = str(int(time.time() * 1000))
+        data = {
+            'interfaceType': 'hangup',
+            'enterpriseId': self.enterprise_id,
+            'userName': self.user_name,
+            'pwd': self._encrypt_passwd(self.password, seed),
+            'seed': seed,
+            'uniqueId': unique_id,
+        }
+        resp = self.session.post(url, data=data)
+        result = json.loads(resp.text)
+        res_no = result.get('result')
+        if res_no != '1':
+            raise self.HangupException(result.get('description'))
         return result
 
     def bind(self, cno, phone_no):
@@ -114,6 +145,7 @@ class TianRunApi:
         :param cno: 客席号
         :param phone_no: 绑定的电话号码
         :return:
+            success without return, error with ClientException
         """
         url = urllib.parse.urljoin(self.HOST, '/interface/client/ClientOnline')
         seed = str(int(time.time() * 1000))
@@ -133,12 +165,11 @@ class TianRunApi:
         if res_no != '0':
             raise self.ClientException(res_no, result.get('msg'))
 
-        return result
-
     def unbind(self, cno):
         """
         :param cno: 客席号
         :return:
+            success without return, error with ClientException
         """
         url = urllib.parse.urljoin(self.HOST, '/interface/client/ClientOffline')
         seed = str(int(time.time() * 1000))
@@ -155,8 +186,6 @@ class TianRunApi:
         res_no = result.get('code')
         if res_no != '0':
             raise self.ClientException(res_no, result.get('msg'))
-
-        return result
 
     def cdr_detail(self, unique_id):
         """
@@ -217,7 +246,8 @@ class TianRunApi:
             record_file: 录音文件的最终地址及录音文件名
             user_field: 用户自定义参数
             sip_cause: 呼叫结果
-        :refer: http://docs.ti-net.com.cn/index.php?m=content&c=index&a=lists&catid=34
+        :refer:
+         http://docs.ti-net.com.cn/index.php?m=content&c=index&a=lists&catid=34
         """
         url = urllib.parse.urljoin(
             self.HOST, '/interfaceAction/cdrObInterface!listCdrOb.action')
@@ -233,7 +263,7 @@ class TianRunApi:
         result = json.loads(resp.text)
         res_no = result.get('result')
         if res_no != 'success':
-            raise self.ClientException(result.get('msg'))
+            raise self.CdrException(result.get('msg'))
         records = result.get('msg').get('data')
         if records:
             data = records[0]
@@ -271,7 +301,7 @@ class TianRunApi:
         result = json.loads(resp.text)
         res_no = result.get('result')
         if res_no != 'success':
-            raise self.ClientException(result.get('msg'))
+            raise self.CdrException(result.get('msg'))
         records = result.get('msg').get('data')
         results = []
         for data in records:
