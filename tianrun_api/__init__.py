@@ -95,10 +95,13 @@ class TianRunApi:
         }
         if ext_info:
             if isinstance(ext_info, dict):
-                data['userField'] = json.dumps(ext_info)
+                json_str = json.dumps(ext_info)
+                json_str = json_str.replace('"', r'\"')
+                data['userField'] = json_str
             elif isinstance(ext_info, (int, str)):
                 data['userField'] = str(ext_info)
         resp = self.session.post(url, data=data)
+        # resp = self.session.get(url, params=data)
         result = json.loads(resp.text)
         res_no = result.get('res')
         if res_no != '0':
