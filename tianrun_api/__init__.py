@@ -8,7 +8,7 @@ import requests
 
 class TianRunApi:
 
-    DEFAULT_TIMEOUT = 5
+    DEFAULT_TIMEOUT = 20
 
     class TimeoutException(Exception):
         msg = '连接天润网关超时'
@@ -66,16 +66,21 @@ class TianRunApi:
 
     HOST = 'http://api.clink.cn'
 
-    def __init__(self, enterprise_id, user_name, password):
+    def __init__(self, enterprise_id, user_name, password, timeout=None):
         """
         :param enterprise_id: 管理员后台登陆后，位于右上角位置
         :param user_name: 登录后台用户名，如admin
         :param password: 上述用户的密码
+        :param timeout: 最长等待时间
         """
         self.enterprise_id = enterprise_id
         self.user_name = user_name
         self.password = password
         self.session = requests.session()
+        if not timeout:
+            self.timeout = self.DEFAULT_TIMEOUT
+        else:
+            self.timeout = timeout
 
     @staticmethod
     def _encrypt_passwd(passwd, seed=None):
@@ -110,8 +115,7 @@ class TianRunApi:
             elif isinstance(ext_info, (int, str)):
                 data['userField'] = str(ext_info)
         try:
-            resp = self.session.post(url, data=data,
-                                     timeout=self.DEFAULT_TIMEOUT)
+            resp = self.session.post(url, data=data, timeout=self.timeout)
         except requests.Timeout:
             raise self.TimeoutException()
         # resp = self.session.get(url, params=data)
@@ -142,8 +146,7 @@ class TianRunApi:
             'uniqueId': unique_id,
         }
         try:
-            resp = self.session.post(url, data=data,
-                                     timeout=self.DEFAULT_TIMEOUT)
+            resp = self.session.post(url, data=data, timeout=self.timeout)
         except requests.Timeout:
             raise self.TimeoutException()
         result = json.loads(resp.text)
@@ -172,8 +175,7 @@ class TianRunApi:
             'type': '1',
         }
         try:
-            resp = self.session.post(url, data=data,
-                                     timeout=self.DEFAULT_TIMEOUT)
+            resp = self.session.post(url, data=data, timeout=self.timeout)
         except requests.Timeout:
             raise self.TimeoutException()
         result = json.loads(resp.text)
@@ -198,8 +200,7 @@ class TianRunApi:
             'unBind': '1',
         }
         try:
-            resp = self.session.post(url, data=data,
-                                     timeout=self.DEFAULT_TIMEOUT)
+            resp = self.session.post(url, data=data, timeout=self.timeout)
         except requests.Timeout:
             raise self.TimeoutException()
         result = json.loads(resp.text)
@@ -230,8 +231,7 @@ class TianRunApi:
             'id': unique_id,
         }
         try:
-            resp = self.session.post(url, data=data,
-                                     timeout=self.DEFAULT_TIMEOUT)
+            resp = self.session.post(url, data=data, timeout=self.timeout)
         except requests.Timeout:
             raise self.TimeoutException()
         result = json.loads(resp.text)
@@ -284,8 +284,7 @@ class TianRunApi:
             'uniqueId': unique_id,
         }
         try:
-            resp = self.session.post(url, data=data,
-                                     timeout=self.DEFAULT_TIMEOUT)
+            resp = self.session.post(url, data=data, timeout=self.timeout)
         except requests.Timeout:
             raise self.TimeoutException()
         result = json.loads(resp.text)
@@ -326,8 +325,7 @@ class TianRunApi:
         if end_time:
             data['endTime'] = end_time
         try:
-            resp = self.session.post(url, data=data,
-                                     timeout=self.DEFAULT_TIMEOUT)
+            resp = self.session.post(url, data=data, timeout=self.timeout)
         except requests.Timeout:
             raise self.TimeoutException()
         result = json.loads(resp.text)
