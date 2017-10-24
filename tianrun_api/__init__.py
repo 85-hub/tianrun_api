@@ -7,8 +7,11 @@ import requests
 
 
 class TianRunApi:
+
+    DEFAULT_TIMEOUT = 5
+
     class TimeoutException(Exception):
-        pass
+        msg = '连接天润网关超时'
 
     class CallException(Exception):
         """
@@ -41,6 +44,7 @@ class TianRunApi:
             return 'CallException, code: {}, msg: {}'.format(
                 self.code, self.msg())
 
+        @property
         def msg(self):
             return self.code_mapping.get(self.code)
 
@@ -105,7 +109,11 @@ class TianRunApi:
                 data['userField'] = json_str
             elif isinstance(ext_info, (int, str)):
                 data['userField'] = str(ext_info)
-        resp = self.session.post(url, data=data)
+        try:
+            resp = self.session.post(url, data=data,
+                                     timeout=self.DEFAULT_TIMEOUT)
+        except requests.Timeout:
+            raise self.TimeoutException()
         # resp = self.session.get(url, params=data)
         result = json.loads(resp.text)
         res_no = result.get('res')
@@ -133,7 +141,11 @@ class TianRunApi:
             'seed': seed,
             'uniqueId': unique_id,
         }
-        resp = self.session.post(url, data=data)
+        try:
+            resp = self.session.post(url, data=data,
+                                     timeout=self.DEFAULT_TIMEOUT)
+        except requests.Timeout:
+            raise self.TimeoutException()
         result = json.loads(resp.text)
         res_no = result.get('result')
         if res_no != '1':
@@ -159,7 +171,11 @@ class TianRunApi:
             'bindTel': phone_no,
             'type': '1',
         }
-        resp = self.session.post(url, data=data)
+        try:
+            resp = self.session.post(url, data=data,
+                                     timeout=self.DEFAULT_TIMEOUT)
+        except requests.Timeout:
+            raise self.TimeoutException()
         result = json.loads(resp.text)
         res_no = result.get('code')
         if res_no != '0':
@@ -181,7 +197,11 @@ class TianRunApi:
             'cno': cno,
             'unBind': '1',
         }
-        resp = self.session.post(url, data=data)
+        try:
+            resp = self.session.post(url, data=data,
+                                     timeout=self.DEFAULT_TIMEOUT)
+        except requests.Timeout:
+            raise self.TimeoutException()
         result = json.loads(resp.text)
         res_no = result.get('code')
         if res_no != '0':
@@ -209,7 +229,11 @@ class TianRunApi:
             'seed': seed,
             'id': unique_id,
         }
-        resp = self.session.post(url, data=data)
+        try:
+            resp = self.session.post(url, data=data,
+                                     timeout=self.DEFAULT_TIMEOUT)
+        except requests.Timeout:
+            raise self.TimeoutException()
         result = json.loads(resp.text)
         res_no = result.get('result')
         if res_no != 'success':
@@ -259,7 +283,11 @@ class TianRunApi:
             'seed': seed,
             'uniqueId': unique_id,
         }
-        resp = self.session.post(url, data=data)
+        try:
+            resp = self.session.post(url, data=data,
+                                     timeout=self.DEFAULT_TIMEOUT)
+        except requests.Timeout:
+            raise self.TimeoutException()
         result = json.loads(resp.text)
         res_no = result.get('result')
         if res_no != 'success':
@@ -297,7 +325,11 @@ class TianRunApi:
             data['startTime'] = start_time
         if end_time:
             data['endTime'] = end_time
-        resp = self.session.post(url, data=data)
+        try:
+            resp = self.session.post(url, data=data,
+                                     timeout=self.DEFAULT_TIMEOUT)
+        except requests.Timeout:
+            raise self.TimeoutException()
         result = json.loads(resp.text)
         res_no = result.get('result')
         if res_no != 'success':
