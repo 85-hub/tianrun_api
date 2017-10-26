@@ -1,6 +1,8 @@
 import hashlib
 import json
+import os
 import time
+import urllib
 import urllib.parse
 
 import requests
@@ -349,3 +351,16 @@ class TianRunApi:
             }
             results.append(tmp_record)
         return results
+
+    def mp3_url(self, file_name):
+        seed = str(int(time.time() * 1000))
+        data = {
+            'enterpriseId': self.enterprise_id,
+            'userName': self.user_name,
+            'pwd': self._encrypt_passwd(self.password, seed),
+            'seed': seed,
+        }
+        day = file_name.split('-')[1][:8]
+        path = os.path.join(day, file_name)
+        return urllib.parse.urljoin(self.HOST, path) + '?' \
+            + urllib.parse.urlencode(data)
