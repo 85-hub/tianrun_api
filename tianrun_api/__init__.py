@@ -44,7 +44,7 @@ class TianRunApi:
 
         def __str__(self):
             return 'CallException, code: {}, msg: {}'.format(
-                self.code, self.msg())
+                self.code, self.msg)
 
         @property
         def msg(self):
