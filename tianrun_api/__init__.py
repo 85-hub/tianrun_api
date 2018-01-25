@@ -66,6 +66,16 @@ class TianRunApi:
         def __init__(self, msg):
             self.msg = msg
 
+    class CreateCnoException(Exception):
+
+        def __init__(self, msg):
+            self.msg= msg
+
+    class DeleteCnoException(Exception):
+
+        def __init__(self, msg):
+            self.msg= msg
+
     HOST = 'http://api.clink.cn'
 
     def __init__(self, enterprise_id, user_name, password, timeout=None):
@@ -364,3 +374,69 @@ class TianRunApi:
         path = os.path.join(day, file_name)
         return urllib.parse.urljoin(self.HOST, path) + '?' \
             + urllib.parse.urlencode(data)
+
+    def create_cno(self, cno, name, pwd, areaCode, power=0, **kwargs):
+        """
+        :param cno: 座席工号
+        :param name: 座席姓名
+        :param pwd: 座席登录密码
+        :param areaCode: 座席所属区号(如：'020')
+        :param power: 座席角色(0表示普通座席,1表示班长座席；默认普通坐席)
+        :param kwargs: 更多参考: http://docs.ti-net.com.cn/index.php?m=content&c=index&a=lists&catid=70
+        :return:
+        """
+        url = urllib.parse.urljoin(
+            self.HOST, '/interfaceAction/clientInterface!save.action')
+        seed = str(int(time.time() * 1000))
+        data = {
+            'enterpriseId': self.enterprise_id,
+            'userName': self.user_name,
+            'password': self._encrypt_passwd(self.password, seed),
+            'seed': seed,
+            'cno': cno,
+            'name': name,
+            'pwd': pwd,
+            'areaCode': areaCode,
+            'power': power,
+            **kwargs,
+        }
+        try:
+            resp = self.session.post(url, data=data, timeout=self.timeout)
+        except requests.Timeout:
+            raise self.TimeoutException()
+
+        result = json.loads(resp.text)
+        status = result.get('result')
+        if status != 'success':
+            raise self.CreateCnoException(result.get('msg'))
+
+        return {
+            'id': result.get('id')
+        }
+
+    def delete_cno(self, _id):
+        """
+        删除座席
+        :param _id:　座席id
+        :return:
+        """
+        url = urllib.parse.urljoin(
+            self.HOST, '/interfaceAction/clientInterface!delete.action')
+        data = {
+            'enterpriseId': self.enterprise_id,
+            'userName': self.user_name,
+            'password': self._encrypt_passwd(self.password),
+            'id': _id,
+        }
+
+        try:
+            resp = self.session.post(url, data=data, timeout=self.timeout)
+        except requests.Timeout:
+            raise self.TimeoutException()
+
+        result = json.loads(resp.text)
+        status = result.get('result')
+        if status != 'success':
+            raise self.DeleteCnoException(result.get('msg'))
+
+        return {'msg': "OK"}
